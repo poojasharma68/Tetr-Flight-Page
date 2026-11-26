@@ -849,6 +849,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .chc-tab{flex:none;height:var(--tab);display:flex;align-items:center;gap:12px;padding:0 20px;font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--mute);border-bottom:1px solid rgba(11,18,16,.08);text-align:left;width:100%;transition:color .3s}
 .chc-tab i{width:8px;height:8px;border-radius:50%;background:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 25%,transparent)}
 .chc-tab b{color:var(--paper);font-weight:800}
+.chc-tt{font-style:normal;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chc-tab span{margin-left:auto;font-weight:700;letter-spacing:.04em;opacity:0;transition:opacity .3s}
 .chc.back .chc-tab span{opacity:1}
 .chc.back .chc-tab:hover{color:var(--paper)}
@@ -949,12 +950,39 @@ a.tc{display:block;color:inherit;text-decoration:none}
  .chc-body{grid-template-columns:1fr}
  .chc-tab{font-size:10.5px;padding:0 14px}
 }
+/* mobile: no sticky stack. Each chapter is a tappable row; one opens at a time */
+@media(max-width:900px){
+ .chx-stack{perspective:none;display:flex;flex-direction:column;gap:10px}
+ .chx-gap{display:none}
+ .chc{position:relative;top:auto;height:auto;min-height:0}
+ .chc-in{height:auto;transform:none!important;filter:none!important;border-radius:18px;
+  box-shadow:inset 3px 0 0 var(--ac),0 14px 30px -24px rgba(11,18,16,.35),inset 0 0 0 1px rgba(11,18,16,.07)}
+ .chc-tab{height:auto;min-height:60px;padding:14px 16px 14px 18px;gap:12px;font-size:11px;letter-spacing:.08em;line-height:1.5;color:var(--mute);border-bottom-color:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+ .chc-tab span{display:none}
+ .chc-tt{white-space:normal}
+ .chc-tab::after{content:"";flex:none;margin-left:auto;width:32px;height:32px;border-radius:50%;
+  background:rgba(11,18,16,.05) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%230B1210' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") center/14px no-repeat;transition:transform .35s cubic-bezier(.2,.8,.2,1),background-color .25s}
+ .chc.open .chc-tab{border-bottom-color:rgba(11,18,16,.08);color:var(--paper)}
+ .chc.open .chc-tab::after{transform:rotate(180deg);background-color:color-mix(in srgb,var(--ac) 35%,#fff)}
+ .chc-body{display:none;overflow:hidden;padding:18px 16px 20px;gap:22px}
+ .chc.open .chc-body{display:grid}
+ .chc-l h3{font-size:30px}
+ .chc-l h4{font-size:18px}
+ .chc-st{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px;margin-top:18px}
+ .chc-st b{font-size:22px}
+ .chc-st span{font-size:11.5px}
+ .chc-pn{min-height:0}
+ .sc{height:auto}.sc-p{height:min(340px,92vw)}
+ .sc-w{flex:none;width:100%;aspect-ratio:4/3}
+ .chc-sw button{height:36px;padding:0 16px;font-size:13px}
+ .tm-ar button{width:40px;height:40px}
+}
 </style>
 
 <section class="chx" id="chapters" aria-label="Chapters by city">
  <div class="chx-head">
   <h2>Term by Term, <em>Here’s What They Built</em></h2>
-  <p>Five countries, five very different businesses. Scroll through each chapter to see what students built and what it earned.</p>
+  <p>Five countries, five very different businesses. Go through each chapter to see what students built and what it earned.</p>
  </div>
  <div class="chx-stack" id="chxStack"></div>
 </section>
@@ -2031,7 +2059,7 @@ function card(c,t,k){
   ${one?`<p class="tc-d">${esc(t.d||'')}</p>`:`<div class="tc-m"><div><span>${esc(c.m[1][1])}</span><em>${t.b==null?esc(t.note):fmtM(t.b,c.m[1][2])}</em></div><i><u data-v="${t.b==null?0:t.b}"></u></i></div>`}</div>
  </${tag}>`}
 $('chxStack').innerHTML=CH.map((c,i)=>`<article class="chc" style="--i:${i};--ac:${c.ac};--act:${c.act}" data-i="${i}"><div class="chc-in">
- <button class="chc-tab" type="button"><i></i>CHAPTER ${i+1} · <b>${esc(c.city.toUpperCase())}</b> · ${esc(c.biz.toUpperCase())}<span>Open ↓</span></button>
+ <button class="chc-tab" type="button"><i></i><em class="chc-tt">CHAPTER ${i+1} · <b>${esc(c.city.toUpperCase())}</b> · ${esc(c.biz.toUpperCase())}</em><span>Open ↓</span></button>
  <div class="chc-body">
   <div class="chc-l">
    <h3>${esc(c.city)} · ${esc(c.biz)}</h3>
@@ -2057,7 +2085,23 @@ const cards=[...document.querySelectorAll('.chc')];
 const TOP=()=>innerWidth<900?64:70,TAB=()=>innerWidth<900?30:34;
 
 /* tabs: jump back to a chapter */
+const chMob=matchMedia('(max-width:900px)');
+const scrollToEl=el=>{const y=(window.__lenis?window.__lenis.scroll:scrollY)+el.getBoundingClientRect().top-84;window.__lenis?window.__lenis.scrollTo(y,{duration:.8}):scrollTo({top:y,behavior:reduce?'auto':'smooth'})};
+function chOpen(card){const b=card.querySelector('.chc-body');card.classList.add('open');card.querySelector('.chc-tab').setAttribute('aria-expanded','true');
+ dispatchEvent(new Event('resize'));if(!card.dataset.counted){card.dataset.counted=1;countUp(card)}
+ if(reduce)return;gsap.fromTo(b,{height:0,opacity:0},{height:'auto',opacity:1,duration:.45,ease:'power3.out',clearProps:'height,opacity'})}
+function chClose(card,instant){const b=card.querySelector('.chc-body');card.querySelector('.chc-tab').setAttribute('aria-expanded','false');
+ if(instant||reduce){card.classList.remove('open');return}
+ gsap.to(b,{height:0,opacity:0,duration:.3,ease:'power2.inOut',onComplete:()=>{card.classList.remove('open');gsap.set(b,{clearProps:'height,opacity'})}})}
+function chToggle(i){const card=cards[i];if(card.classList.contains('open')){chClose(card);return}
+ const above=cards.slice(0,i).some(c=>c.classList.contains('open'));
+ cards.forEach((c,k)=>{if(k!==i&&c.classList.contains('open'))chClose(c,above)});chOpen(card);
+ setTimeout(()=>{const t=card.getBoundingClientRect().top;if(t<70||t>innerHeight*.45)scrollToEl(card)},above?30:120)}
+function chMode(){cards.forEach((c,k)=>{const tab=c.querySelector('.chc-tab');gsap.set(c.querySelector('.chc-body'),{clearProps:'height,opacity'});
+ if(chMob.matches){tab.setAttribute('aria-expanded',String(k===0));c.classList.toggle('open',k===0)}else{tab.removeAttribute('aria-expanded');c.classList.remove('open')}});dispatchEvent(new Event('resize'))}
+chMode();chMob.addEventListener('change',chMode);
 cards.forEach((c,i)=>c.querySelector('.chc-tab').addEventListener('click',()=>{
+ if(chMob.matches){chToggle(i);return}
  const sc=window.__lenis?window.__lenis.scroll:scrollY,mb=document.querySelector('.chx-gap').offsetHeight;
  const y=sc+$('chxStack').getBoundingClientRect().top+i*(cards[0].offsetHeight+mb)-(TOP()+i*TAB())+4;
  window.__lenis?window.__lenis.scrollTo(y,{duration:1.2}):scrollTo({top:y,behavior:'smooth'})}));
@@ -2124,9 +2168,10 @@ cards.forEach((card,i)=>{const sw=card.querySelector('.chc-sw');if(!sw)return;co
  addEventListener('resize',()=>knob(bs.find(b=>b.dataset.v===(card.dataset.v||'sc'))));set('sc')});
 
 /* the stack: incoming card rises tilted, earlier ones step back and dim */
+cards.forEach((card,i)=>ScrollTrigger.create({trigger:card,start:'top 65%',once:true,onEnter:()=>{if(!card.dataset.counted){card.dataset.counted=1;countUp(card)}races[i]&&races[i]()}}));
+gsap.matchMedia().add('(min-width:901px)',()=>{
 cards.forEach((card,i)=>{
  const inner=card.querySelector('.chc-in');
- ScrollTrigger.create({trigger:card,start:'top 65%',once:true,onEnter:()=>{countUp(card);races[i]&&races[i]()}});
  if(reduce)return;
  gsap.fromTo(inner,{rotateX:i?22:0,y:i?60:0,scale:i?.96:1},{rotateX:0,y:0,scale:1,ease:'power2.out',
   scrollTrigger:{trigger:card,start:'top bottom',end:()=>`top ${TOP()+i*TAB()+20}px`,scrub:.6,invalidateOnRefresh:true}});
@@ -2135,6 +2180,7 @@ cards.forEach((card,i)=>{
   scrollTrigger:{trigger:next,start:'top bottom',end:()=>`top ${TOP()+(i+1)*TAB()}px`,scrub:true,invalidateOnRefresh:true,
    onLeave:()=>card.classList.add('back'),onEnterBack:()=>card.classList.remove('back')}});
 });
+return()=>cards.forEach(c=>c.classList.remove('back'))});
 gsap.from('.chx-head > *',{y:30,opacity:0,stagger:.1,duration:.8,ease:'power3.out',scrollTrigger:{trigger:'.chx-head',start:'top 85%'}});
 }
 </script>
@@ -2438,7 +2484,7 @@ imT.innerHTML=IM.map((x,i)=>`<button type="button" role="tab" aria-selected="fal
 const imBs=[...imT.children];
 const tx=(k,a,cl,ar)=>`<article class="it3 tx${cl?' cu':''}" style="grid-area:${ar}"><small>${k}</small><b>${esc(a[0])}</b><p>${esc(a[1])}</p></article>`;
 const ph=(p,ar,h)=>`<figure class="it3 ph${h?' hero':''}" style="grid-area:${ar};margin:0"><img src="img/${p[0]}.webp" alt="${esc(p[1])}" loading="lazy">${h?p[2]:`<figcaption>${esc(p[1])}</figcaption>`}</figure>`;
-function imSet(i){i=(i+IM.length)%IM.length;if(i===imC)return;imC=i;const x=IM[i];
+function imSet(i){i=Math.max(0,Math.min(IM.length-1,i));if(i===imC)return;imC=i;const x=IM[i];$('imPrev').disabled=i===0;$('imNext').disabled=i===IM.length-1;
  imBs.forEach((b,k)=>{b.setAttribute('aria-selected',k===i);b.tabIndex=k===i?0:-1});$('imNo').textContent=`${String(i+1).padStart(2,'0')} / ${String(IM.length).padStart(2,'0')}`;
  imG.innerHTML=ph([x.hero,x.c,`<figcaption><b>${x.c}</b><span>${esc(x.sub)}</span></figcaption>`],'h',1)+tx('Business immersion',x.b[0],0,'b1')+ph(x.ph[0],'p1')+ph(x.ph[1],'p2')+tx('Cultural immersion',x.cu[0],1,'c1')+tx('Business immersion',x.b[1],0,'b2')+ph(x.ph[2],'p3')+tx('Cultural immersion',x.cu[1],1,'c2');
  if(!reduce&&window.gsap)gsap.fromTo(imG.children,{y:18,opacity:0},{y:0,opacity:1,stagger:.04,duration:.5,ease:'power3.out'})}
